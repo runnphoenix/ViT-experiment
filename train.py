@@ -81,11 +81,16 @@ def test(model):
     with torch.no_grad():
         for data in test_loader:
             # data
-            data = data.to(device)
+            data = data[0].to(device)
             # model 
-            y = model(data)
+            y = model(data).cpu()
+            softmax = torch.nn.Softmax(dim=1)
+            y = softmax(y)
+            print(y)
+            y = torch.argmax(y, dim=1)
+            print(y)
             # write result to a file
-            ys.append(y)
+            ys.extend(y)
 
     write_result(ys, './result.csv')
 

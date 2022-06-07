@@ -61,6 +61,11 @@ class DoCaSet(Dataset):
                     Transforms.ToTensor(),
                     normalize
                     ]),
+                'test':
+                Transforms.Compose([
+                    Transforms.Resize((224,224)),
+                    Transforms.ToTensor(),
+                    ]),
             }   
 
     def __getitem__(self, index):
