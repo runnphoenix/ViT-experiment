@@ -1,17 +1,10 @@
 import os
 import random
 
-import numpy as np
-import pandas as pd
-
 import PIL.Image as Image
 import matplotlib.pyplot as plt
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
 import torchvision
@@ -50,8 +43,7 @@ class DoCaSet(Dataset):
                 'train':
                 Transforms.Compose([
                     Transforms.Resize((224,224)),
-                    Transforms.RandomAffine(0, shear=10, scale=(0.8, 1.2)),
-                    Transforms.RandomHorizontalFlip(),
+                    Transforms.RandomHorizontalFlip(p=0.2),
                     Transforms.ToTensor(),
                     normalize
                     ]),
@@ -92,7 +84,7 @@ if __name__ == '__main__':
     test_set = DoCaSet('../cat_dog', 'test')
     print(len(test_set))
 
-    train_data = train_set.__getitem__(random.randint(1,2000))
+    train_data = val_set.__getitem__(random.randint(1,2000))
     print(train_data[1])
     print(train_data[0][0])
     plt.imshow(train_data[0].T)
