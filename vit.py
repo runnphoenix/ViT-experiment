@@ -1,6 +1,6 @@
 import torch
 
-from einops import repeat, reduce
+from einops import repeat, rearrange
 from einops.layers.torch import Rearrange
 
 
@@ -8,6 +8,7 @@ class PatchEmbed(torch.nn.Module):
     def __init__(self, img_size=224, patch_size=16, in_c=3, tran_dim=768, norm_layer=None, flatten=True):
         super().__init__()
 
+        '''
         img_w, img_h = img_size, img_size
         patch_w, patch_h = patch_size, patch_size
         nw = img_w // patch_w # num of horizontal patches 
@@ -15,24 +16,19 @@ class PatchEmbed(torch.nn.Module):
 
         num_patches = nw * nh
         patch_dim = in_c * patch_w * patch_h
+        '''
 
+        '''
         self.proj = torch.nn.Sequential(
                 Rearrange('b c (nw pw) (nh ph) -> b (nw nh) (pw ph c)', pw=patch_w, ph=patch_h),
                 torch.nn.Linear(patch_dim, tran_dim) #TODO: patch_dim should be divided into 3? or conv?
                 )
-
-        self.cls_token = torch.nn.Parameter(torch.randn(1,1,tran_dim))
-        self.pos_embed = torch.nn.Parameter(torch.randn(1, num_patches+1, tran_dim))
+        '''
+        # timm version uses a conv layer instead of a FC layer
+        self.proj = torch.nn.Conv2d(in_c, tran_dim, kernel_size=patch_size, stride=patch_size)
 
     def forward(self, x):
-        # split images
         x = self.proj(x)
-        b, n, patch_dim = x.shape
-        # add class token
-        cls_tokens = repeat(cls_token, '1 n d -> b n d', b=b)
-        x = torch.cat((cls_tokens, x), dim=1)
-        # add position embedding
-        x += self.pos_embed #TODO
 
         return x
 
@@ -45,15 +41,18 @@ class MLP(torch.nn.Module):
     '''
     def __init__(self, tran_dim, hid_dim, dropout=0.0):
         super().__init__()
-        self.mlp = torch.nn.Sequential(
-                torch.nn.Linear(tran_dim, hid_dim), #fc1
-                torch.nn.GELU(),
-                torch.nn.Dropout(dropout),
-                torch.nn.Linear(hid_dim, tran_dim), #fc2
-                torch.nn.Dropout(dropout)
-                )
+        self.fc1 = torch.nn.Linear(tran_dim, hid_dim) #fc1
+        self.active_fn = torch.nn.GELU()
+        self.dropout = torch.nn.Dropout(dropout)
+        self.fc2 = torch.nn.Linear(hid_dim, tran_dim) #fc2
+
     def forward(self, x):
-        return self.mlp(x)
+        x = self.active_fn(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        x = self.dropout(x)
+
+        return x
 
 
 class MultiAttention(torch.nn.Module):
@@ -67,16 +66,18 @@ class MultiAttention(torch.nn.Module):
         self.softmax = torch.nn.Softmax(dim = -1)
         self.dropout = torch.nn.Dropout(dropout)
 
-        self.to_qkv = torch.nn.Linear(tran_dim, inner_dim*3)
+        self.qkv = torch.nn.Linear(tran_dim, inner_dim*3)
 
-        self.out = torch.nn.Sequential(
+        self.proj = torch.nn.Sequential(
                 torch.nn.Linear(inner_dim, tran_dim), # proj
                 torch.nn.Dropout(dropout)
                 )
+        self.proj = torch.nn.Linear(inner_dim, tran_dim)
+        self.dropout = torch.nn.Dropout(dropout)
 
     def forward(self, x):
         # to get Q,K,V
-        qkv = self.to_qkv(x).chunk(3, dim=-1)
+        qkv = self.qkv(x).chunk(3, dim=-1)
         q,k,v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=self.n_heads), qkv)
         
         # use Q,K to get weght
@@ -88,8 +89,12 @@ class MultiAttention(torch.nn.Module):
         out = torch.matmul(attn, v) # b,h,n,d
         out = rearrange(out, 'b h n d -> b n (h d)') #concatenate to a long row
 
-        return self.out(out)
+        out = self.proj(out)
+        out = self.dropout(out)
 
+        return out
+
+# deprecated
 class PreNorm(torch.nn.Module):
     def __init__(self, dim, af):
         super().__init__()
@@ -101,22 +106,17 @@ class PreNorm(torch.nn.Module):
 
 
 class EncoderBlock(torch.nn.Module):
-    def __init__(self, tran_dim, depth, n_heads, head_dim, mlp_dim, dropout=0.0):
+    def __init__(self, tran_dim, n_heads, head_dim, mlp_dim, dropout=0.0):
         super().__init__()
-        self.layers = torch.nn.ModuleList([])
 
-        for _ in range(depth):
-            self.layers.append( 
-                    torch.nn.ModuleList([
-                        PreNorm(tran_dim, MultiAttention(tran_dim, n_heads=n_heads, head_dim=head_dim, dropout=dropout)),
-                        PreNorm(tran_dim, MLP(tran_dim, mlp_dim, dropout=dropout))
-                        ])
-                    )
+        self.norm1 = torch.nn.LayerNorm(tran_dim)
+        self.attn = MultiAttention(tran_dim, n_heads=n_heads, head_dim=head_dim, dropout=dropout)
+        self.norm2 = torch.nn.LayerNorm(tran_dim)
+        self.mlp = MLP(tran_dim, mlp_dim, dropout=dropout)
 
     def forward(self, x):
-        for attn, ff in self.layers:
-            x = attn(x) + x
-            x = ff(x) + x
+        x = x + self.norm1(self.attn(x))
+        x = x + self.norm2(self.mlp(x))
 
         return x
 
@@ -127,23 +127,37 @@ class ViT(torch.nn.Module):
 
         self.patch_embed = PatchEmbed(img_size, patch_size, c_in, dim)
 
-        self.blocks = EncoderBlock(dim, depth, n_heads, head_dim, mlp_dim, dropout)
+        self.cls_token = torch.nn.Parameter(torch.randn(1, 1, dim))
+        self.pos_embed = torch.nn.Parameter(torch.randn(1, img_size//patch_size+1, dim))
+
+        self.blocks = torch.nn.ModuleList([])
+        for _ in range(depth):
+            self.blocks.append(EncoderBlock(dim, n_heads, head_dim, mlp_dim))
+
         self.to_latent = torch.nn.Identity()
 
-        self.head = torch.nn.Sequential(
-                torch.nn.LayerNorm(dim), # last norm
-                torch.nn.Linear(dim, num_classes) # head
-                )
+        self.norm = torch.nn.LayerNorm(dim) # last norm
+        self.head = torch.nn.Linear(dim, num_classes) # head
 
     def forward(self, x):
         b, n, patch_dim = x.shape
 
         x = self.patch_embed(x)
+        # add class token
+        cls_tokens = repeat(cls_token, '1 n d -> b n d', b=b)
+        x = torch.cat((cls_tokens, x), dim=1)
+        # add position embedding
+        x += self.pos_embed #TODO
+
         x = self.dropout(x)
+
         x = self.blocks(x)
         x = x[:, 0] #take only the class token
 
-        return self.head(x)
+        x = self.norm(x)
+        x = self.head(x)
+
+        return x
 
 ####### Test only #######
 if __name__ == '__main__':
