@@ -135,7 +135,7 @@ def test(model):
             # write result to a file
             ys.extend(y)
 
-    write_result(ys, './result.csv')
+    write_result(ys, './result/result.csv')
 
 
 if __name__ == '__main__':
