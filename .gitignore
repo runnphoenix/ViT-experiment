@@ -1,3 +1,10 @@
+# model weight file
+*.pth
+
+# dataset directory
+cat_dog/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
