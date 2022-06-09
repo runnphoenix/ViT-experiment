@@ -20,9 +20,9 @@ self_mode = True
 fine_tune = True
 
 ########## DataSet ##########
-train_data = DoCaSet(root_path='../cat_dog', category='train')
-val_data = DoCaSet(root_path='../cat_dog', category='val')
-test_data = DoCaSet(root_path = '../cat_dog', category='test')
+train_data = DoCaSet(root_path='./cat_dog', category='train')
+val_data = DoCaSet(root_path='./cat_dog', category='val')
+test_data = DoCaSet(root_path = './cat_dog', category='test')
 print("train samples:{}, val samples:{}, test_samples:{}".format(len(train_data), len(val_data), len(test_data)))
 
 train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
@@ -35,7 +35,7 @@ if self_mode:
 else:
 	model = create_model("vit_base_patch16_224", pretrained=False)
 
-model.load_state_dict(torch.load("../jx_vit_base_p16_224-80ecf9dd.pth"))
+model.load_state_dict(torch.load("./jx_vit_base_p16_224-80ecf9dd.pth"))
 model.head = torch.nn.Linear(model.head.in_features, num_classes)
 torch.nn.init.xavier_uniform_(model.head.weight)
 

@@ -9,10 +9,6 @@ class PatchEmbed(torch.nn.Module):
         super().__init__()
 
         '''
-        patch_dim = in_c * patch_w * patch_h
-        '''
-
-        '''
         self.proj = torch.nn.Sequential(
                 Rearrange('b c (nw pw) (nh ph) -> b (nw nh) (pw ph c)', pw=patch_w, ph=patch_h),
                 torch.nn.Linear(patch_dim, tran_dim) #TODO: patch_dim should be divided into 3? or conv?
