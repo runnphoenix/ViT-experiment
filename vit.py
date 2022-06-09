@@ -9,12 +9,6 @@ class PatchEmbed(torch.nn.Module):
         super().__init__()
 
         '''
-        img_w, img_h = img_size, img_size
-        patch_w, patch_h = patch_size, patch_size
-        nw = img_w // patch_w # num of horizontal patches 
-        nh = img_h // patch_h # num of vetical patchs
-
-        num_patches = nw * nh
         patch_dim = in_c * patch_w * patch_h
         '''
 
@@ -94,16 +88,6 @@ class MultiAttention(torch.nn.Module):
 
         return out
 
-# deprecated
-class PreNorm(torch.nn.Module):
-    def __init__(self, dim, af):
-        super().__init__()
-        self.norm = torch.nn.LayerNorm(dim)
-        self.af = af
-
-    def forward(self, x):
-        return self.af(self.norm(x))
-
 
 class EncoderBlock(torch.nn.Module):
     def __init__(self, tran_dim, n_heads, head_dim, mlp_dim, dropout=0.0):
@@ -115,8 +99,8 @@ class EncoderBlock(torch.nn.Module):
         self.mlp = MLP(tran_dim, mlp_dim, dropout=dropout)
 
     def forward(self, x):
-        x = x + self.norm1(self.attn(x))
-        x = x + self.norm2(self.mlp(x))
+        x = x + self.attn(self.norm1(x))
+        x = x + self.mlp(self.norm2(x))
 
         return x
 
@@ -128,23 +112,30 @@ class ViT(torch.nn.Module):
         self.patch_embed = PatchEmbed(img_size, patch_size, c_in, dim)
 
         self.cls_token = torch.nn.Parameter(torch.randn(1, 1, dim))
-        self.pos_embed = torch.nn.Parameter(torch.randn(1, img_size//patch_size+1, dim))
 
-        self.blocks = torch.nn.ModuleList([])
-        for _ in range(depth):
-            self.blocks.append(EncoderBlock(dim, n_heads, head_dim, mlp_dim))
+        img_w, img_h = img_size, img_size
+        patch_w, patch_h = patch_size, patch_size
+        nw = img_w // patch_w # num of horizontal patches 
+        nh = img_h // patch_h # num of vetical patchs
+        num_patches = nw * nh
+        self.pos_embed = torch.nn.Parameter(torch.randn(1, num_patches+1, dim))
 
-        self.to_latent = torch.nn.Identity()
+        self.blocks = torch.nn.Sequential(*[
+            EncoderBlock(dim, n_heads, head_dim, mlp_dim)
+            for _ in range(depth)]) #TODO why *
+
+        self.dropout = torch.nn.Dropout(dropout)
 
         self.norm = torch.nn.LayerNorm(dim) # last norm
         self.head = torch.nn.Linear(dim, num_classes) # head
 
     def forward(self, x):
-        b, n, patch_dim = x.shape
-
         x = self.patch_embed(x)
+        x = rearrange(x, 'b d nw nh -> b (nw nh) d')
+
         # add class token
-        cls_tokens = repeat(cls_token, '1 n d -> b n d', b=b)
+        b = x.shape[0]
+        cls_tokens = repeat(self.cls_token, '1 n d -> b n d', b=b)
         x = torch.cat((cls_tokens, x), dim=1)
         # add position embedding
         x += self.pos_embed #TODO

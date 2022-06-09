@@ -13,10 +13,11 @@ from timm import create_model
 ########## Parameters ############
 num_epochs = 5
 num_classes = 2
-batch_size = 8
-lr = 0.0003
+batch_size = 16
+lr = 0.0001
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-slef_mode = True
+self_mode = True
+fine_tune = True
 
 ########## DataSet ##########
 train_data = DoCaSet(root_path='../cat_dog', category='train')
@@ -30,20 +31,23 @@ test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
 ########## Model ##########
 if self_mode:
-    model = create_model("vit_base_patch16_224", pretrained=False)
-    model.load_state_dict(torch.load("../jx_vit_base_p16_224-80ecf9dd.pth"))
-    model.head = torch.nn.Linear(model.head.in_features, num_classes)
-    torch.nn.init.xavier_uniform(model.head.weight)
+	model = ViT(img_size=224, patch_size=16, num_classes=1000, dim=768, depth=12, n_heads=8, mlp_dim=768*4)
 else:
-    model = ViT()
-    model.load_state_dict(torch.load("../jv_vit_base_p16_224-80ecf9dd.pth"))
+	model = create_model("vit_base_patch16_224", pretrained=False)
 
-    for param in model.state_dict():
-        model.state_dict()[param].requires_grad = False
-        print(param, '\t', model.state_dict()[param].size())
+model.load_state_dict(torch.load("../jx_vit_base_p16_224-80ecf9dd.pth"))
+model.head = torch.nn.Linear(model.head.in_features, num_classes)
+torch.nn.init.xavier_uniform_(model.head.weight)
 
-    model.state_dict()['head.weight'].requires_grad = True
-    model.state_dict()['head.bias'].requires_grad = True
+for param in model.state_dict():
+	if fine_tune:
+		model.state_dict()[param].requires_grad = True
+	else:
+		model.state_dict()[param].requires_grad = False
+		model.state_dict()['head.weight'].requires_grad = True
+		model.state_dict()['head.bias'].requires_grad = True
+
+	print(param, '\t', model.state_dict()[param].size())
 
 model.to(device)
 
@@ -105,7 +109,7 @@ def val_epoch(model):
 
     loss = np.mean(losses)
     acc = acc * batch_size / len(val_data)
-    print("Epoch val acc:{}%".format(acc))
+    print("Epoch val acc:{}".format(acc))
     print("Epoch val loss:{}".format(loss))
 
     return acc
