@@ -11,3 +11,4 @@ Implementation of ViT and test it with new datasets.
 - train.py:    Main file doing training and testing
 - vit.py:      The implementation of ViT model
 - data_loader: Loading new dataset
+- visulization: visulize position embedding and attention
