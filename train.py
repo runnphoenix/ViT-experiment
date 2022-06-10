@@ -156,5 +156,8 @@ if __name__ == '__main__':
     plt.plot(range(num_epochs), val_accs)
     plt.show()
 
+    # save model
+    torch.save(model.state_dict(), './trained_model.pth')
+
     # test
     test(model)
