@@ -1,0 +1,25 @@
+* Abstract
+In this project the Vision Transformer(ViT)[note] paper was studied and implemented. An experiment was also carried on to test the performance of ViT as backbone in a classification task. Specifically, the dataset of a still available dot vs. cat competition was used to test on the models when: 1. only the customized head was trainable; 2. the ViT backbone was also trainable. The vision Attention was also studied.
+
+* Vision Transformer
+** Intro
+Transformer[note] was firstly introduced in Natural Language Processing field and has dominated the field since then. Inspired by the success of Transformer in NLP, the Vision Transformer(ViT) paper applied a standard transformer directly to images, using as few as possible modifications. The paper shows that when trained on large(14M-300M) images, ViT could get excellent results when pre-trained at sufficient scale and transferred to tasks with fewer datapoints.
+
+* ViT Structure
+** whole
+** components
+*** patch embed
+*** encoderBlock
+*** head
+
+* Experiments
+** Dataset
+** head only
+** fine tune
+** results and analysis
+** vision attention
+
+* Conclusion
+Not only CNN could be used in NLP, transformer could also be used in CV.
+
+ViT could get very good result, meaning that transformer is also .. in CV. 

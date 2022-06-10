@@ -151,7 +151,7 @@ if __name__ == '__main__':
 
         epoch_acc = val_epoch(model)
         val_accs.append(epoch_acc)
-        
+
     plt.plot(range(num_epochs), losses)
     plt.plot(range(num_epochs), val_accs)
     plt.show()

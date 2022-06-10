@@ -8,8 +8,6 @@ Implementation of ViT and test it with new datasets.
 - torchvision: 0.8.2
 
 ## File Exploration
-- main.py:     The Commander of all other files
-- train.py:    Train for one episode
-- eval.py:     Do the Evaluation
+- train.py:    Main file doing training and testing
 - vit.py:      The implementation of ViT model
 - data_loader: Loading new dataset
