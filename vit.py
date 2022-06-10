@@ -46,7 +46,7 @@ class MLP(torch.nn.Module):
 
 
 class MultiAttention(torch.nn.Module):
-    def __init__(self, tran_dim, n_heads=8, head_dim=96, dropout=0.0):
+    def __init__(self, tran_dim, n_heads=12, head_dim=64, dropout=0.0):
         super().__init__()
         inner_dim = n_heads * head_dim
 
@@ -102,7 +102,7 @@ class EncoderBlock(torch.nn.Module):
 
 
 class ViT(torch.nn.Module):
-    def __init__(self, img_size, patch_size, num_classes, dim, depth, n_heads, mlp_dim, c_in=3, head_dim=96, dropout=0.0, emb_dropout=0.0):
+    def __init__(self, img_size, patch_size, num_classes, dim, depth, n_heads, mlp_dim, c_in=3, head_dim=64, dropout=0.0, emb_dropout=0.0):
         super().__init__()
 
         self.patch_embed = PatchEmbed(img_size, patch_size, c_in, dim)
@@ -148,6 +148,6 @@ class ViT(torch.nn.Module):
 
 ####### Test only #######
 if __name__ == '__main__':
-    model = ViT(224, 16, 2, 768, 12, 8, 768*4)
+    model = ViT(224, 16, 2, 768, 12, 12, 768*4)
     for param in model.state_dict():
         print(param, '\t', model.state_dict()[param].size())

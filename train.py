@@ -17,7 +17,7 @@ batch_size = 16
 lr = 0.0001
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 self_mode = True
-fine_tune = True
+fine_tune = False
 
 ########## DataSet ##########
 train_data = DoCaSet(root_path='./cat_dog', category='train')
@@ -31,7 +31,7 @@ test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
 
 ########## Model ##########
 if self_mode:
-	model = ViT(img_size=224, patch_size=16, num_classes=1000, dim=768, depth=12, n_heads=8, mlp_dim=768*4)
+	model = ViT(img_size=224, patch_size=16, num_classes=1000, dim=768, depth=12, n_heads=12, mlp_dim=768*4)
 else:
 	model = create_model("vit_base_patch16_224", pretrained=False)
 
