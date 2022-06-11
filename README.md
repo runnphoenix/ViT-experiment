@@ -8,7 +8,7 @@ Implementation of ViT and test it with new datasets.
 - torchvision: 0.8.2
 
 ## File Exploration
-- train.py:    Main file doing training and testing
+- main.py:    Main file doing training and testing
 - vit.py:      The implementation of ViT model
-- data_loader: Loading new dataset
-- visulization: visulize position embedding and attention
+- data_set.py: Loading new dataset
+- visulization.py: visulize position embedding and attention
