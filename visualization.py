@@ -28,7 +28,10 @@ def show_attention(model_path, img_path):
     # show position Embedding
     fig = plt.figure(figsize=(8,8))
     fig.suptitle(" Visualization of position embeddings ")
-    for i in range(1, model.pos_embed.shape[1]):
+    for i in range(1, model.pos_embed.shape[1]): #197
+        print(model.pos_embed.shape)
+        print(model.pos_embed[0, i:i+1].shape)
+        print(model.pos_embed[0, 1:].shape)
         sim = torch.nn.functional.cosine_similarity(model.pos_embed[0, i:i+1], model.pos_embed[0, 1:], dim=1)
         sim = sim.reshape((14, 14)).detach().cpu().numpy()
         ax = fig.add_subplot(14, 14, i)
@@ -41,30 +44,28 @@ def show_attention(model_path, img_path):
     attention = model.blocks[0].attn
     qkv = attention.qkv(transformer_input).chunk(3, dim=-1)
     q,k,v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=12), qkv)
-    att_matrix = torch.matmul(q, k.transpose(-1, -2)) * (64 ** -0.5)
-    att_matrix = att_matrix.squeeze()
+    att_matrix = torch.matmul(q, k.transpose(-1, -2)) * (64 ** -0.5) #shape b=1, h=12, n=197, n
+    #197*197 means for each patch, what other each patch means to it
+    att_matrix = att_matrix.squeeze() #remove the 1 of shape[0], as there's only 1 image in the batch
 
-    plt.imshow(att_matrix[3].detach().cpu().numpy())
-    plt.show()
+    for i in range(12): # show each head
+        plt.imshow(att_matrix[i].detach().cpu().numpy())
+        plt.show()
 
     # show attention heatmap
-    for i in range(7):
+    for i in range(12): # show each head
         fig = plt.figure()
-        fig.suptitle("Visualization of attenion")
-        fig.add_subplot()
-        image = np.asarray(image)
-        ax = fig.add_subplot(14, 15, 1)
-        ax.imshow(image)
+        fig.suptitle("Visualization of attention")
 
-        for j in range(197):
+        for j in range(1, 197): # show each patch in one head
             att_heatmap = att_matrix[i, j, 1:].reshape((14, 14)).detach().cpu().numpy()
-            ax = fig.add_subplot(14, 15, j+2)
-            ax.axes.get_xaxis().set_visible(False)
+            ax = fig.add_subplot(14, 14, j)
             ax.axes.get_yaxis().set_visible(False)
+            ax.axes.get_xaxis().set_visible(False)
             ax.imshow(att_heatmap)
 
         plt.show()
 
 
 if __name__ =='__main__':
-    show_attention('./trained_model.pth', './cat_dog/test/1377.jpg')
+    show_attention('./trained_model.pth', './cat_dog/test/883.jpg')

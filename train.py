@@ -11,13 +11,13 @@ import matplotlib.pyplot as plt
 from timm import create_model 
 
 ########## Parameters ############
-num_epochs = 5
+num_epochs = 10
 num_classes = 2
 batch_size = 16
 lr = 0.0001
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 self_mode = True
-fine_tune = False
+fine_tune = True
 
 ########## DataSet ##########
 train_data = DoCaSet(root_path='./cat_dog', category='train')
