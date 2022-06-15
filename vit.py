@@ -134,7 +134,7 @@ class ViT(torch.nn.Module):
         cls_tokens = repeat(self.cls_token, '1 n d -> b n d', b=b)
         x = torch.cat((cls_tokens, x), dim=1)
         # add position embedding
-        x += self.pos_embed #TODO
+        x += self.pos_embed 
 
         x = self.dropout(x)
 

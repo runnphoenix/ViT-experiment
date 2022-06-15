@@ -16,8 +16,8 @@ num_classes = 2
 batch_size = 16
 lr = 0.0001
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-self_mode = True
-fine_tune = True
+self_mode = True # use model of self-written or timm
+fine_tune = True # train head only or whole model
 
 ########## DataSet ##########
 train_data = DoCaSet(root_path='./cat_dog', category='train')
@@ -35,6 +35,7 @@ if self_mode:
 else:
 	model = create_model("vit_base_patch16_224", pretrained=False)
 
+# customize the head
 model.load_state_dict(torch.load("./jx_vit_base_p16_224-80ecf9dd.pth"))
 model.head = torch.nn.Linear(model.head.in_features, num_classes)
 torch.nn.init.xavier_uniform_(model.head.weight)
@@ -145,13 +146,14 @@ if __name__ == '__main__':
 
     for i in range(num_epochs):
         print("\n--------- Epoch {} ----------".format(i))
-        # only for fine tune
+
         epoch_loss = train_epoch(model, optimizer)
         losses.append(epoch_loss)
 
         epoch_acc = val_epoch(model)
         val_accs.append(epoch_acc)
 
+    # plot training process
     plt.plot(range(num_epochs), losses)
     plt.plot(range(num_epochs), val_accs)
     plt.show()
